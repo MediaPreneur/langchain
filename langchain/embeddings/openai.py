@@ -84,11 +84,10 @@ class OpenAIEmbeddings(BaseModel, Embeddings):
         Returns:
             List of embeddings, one for each text.
         """
-        responses = [
+        return [
             self._embedding_func(text, engine=self.document_model_name)
             for text in texts
         ]
-        return responses
 
     def embed_query(self, text: str) -> List[float]:
         """Call out to OpenAI's embedding endpoint for embedding query text.
@@ -99,5 +98,4 @@ class OpenAIEmbeddings(BaseModel, Embeddings):
         Returns:
             Embeddings for the text.
         """
-        embedding = self._embedding_func(text, engine=self.query_model_name)
-        return embedding
+        return self._embedding_func(text, engine=self.query_model_name)

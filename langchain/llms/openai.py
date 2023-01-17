@@ -205,9 +205,7 @@ class BaseOpenAI(BaseLLM, BaseModel):
         if params["best_of"] != 1:
             raise ValueError("OpenAI only supports best_of == 1 for streaming")
         params["stream"] = True
-        generator = self.client.create(prompt=prompt, **params)
-
-        return generator
+        return self.client.create(prompt=prompt, **params)
 
     @property
     def _invocation_params(self) -> Dict[str, Any]:
@@ -267,17 +265,14 @@ class BaseOpenAI(BaseLLM, BaseModel):
 
                 max_tokens = openai.modelname_to_contextsize("text-davinci-003")
         """
-        if modelname == "text-davinci-003":
-            return 4000
-        elif modelname == "text-curie-001":
-            return 2048
-        elif modelname == "text-babbage-001":
-            return 2048
-        elif modelname == "text-ada-001":
-            return 2048
-        elif modelname == "code-davinci-002":
+        if modelname == "code-davinci-002":
             return 8000
-        elif modelname == "code-cushman-001":
+        elif modelname in {
+            "text-curie-001",
+            "text-babbage-001",
+            "text-ada-001",
+            "code-cushman-001",
+        }:
             return 2048
         else:
             return 4000

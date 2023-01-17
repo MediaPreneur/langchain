@@ -65,7 +65,7 @@ class LLMMathChain(Chain, BaseModel):
             if self.verbose:
                 self.callback_manager.on_text("\nAnswer: ")
                 self.callback_manager.on_text(output, color="yellow")
-            answer = "Answer: " + output
+            answer = f"Answer: {output}"
         elif t.startswith("Answer:"):
             answer = t
         else:

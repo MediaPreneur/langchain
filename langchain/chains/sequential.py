@@ -45,31 +45,30 @@ class SequentialChain(Chain, BaseModel):
         input_variables = values["input_variables"]
         known_variables = set(input_variables)
         for chain in chains:
-            missing_vars = set(chain.input_keys).difference(known_variables)
-            if missing_vars:
+            if missing_vars := set(chain.input_keys).difference(known_variables):
                 raise ValueError(
                     f"Missing required input keys: {missing_vars}, "
                     f"only had {known_variables}"
                 )
-            overlapping_keys = known_variables.intersection(chain.output_keys)
-            if overlapping_keys:
+            if overlapping_keys := known_variables.intersection(chain.output_keys):
                 raise ValueError(
                     f"Chain returned keys that already exist: {overlapping_keys}"
                 )
             known_variables |= set(chain.output_keys)
 
         if "output_variables" not in values:
-            if values.get("return_all", False):
-                output_keys = known_variables.difference(input_variables)
-            else:
-                output_keys = chains[-1].output_keys
+            output_keys = (
+                known_variables.difference(input_variables)
+                if values.get("return_all", False)
+                else chains[-1].output_keys
+            )
             values["output_variables"] = output_keys
-        else:
-            missing_vars = set(values["output_variables"]).difference(known_variables)
-            if missing_vars:
-                raise ValueError(
-                    f"Expected output variables that were not found: {missing_vars}."
-                )
+        elif missing_vars := set(values["output_variables"]).difference(
+            known_variables
+        ):
+            raise ValueError(
+                f"Expected output variables that were not found: {missing_vars}."
+            )
         return values
 
     def _call(self, inputs: Dict[str, str]) -> Dict[str, str]:
@@ -78,7 +77,7 @@ class SequentialChain(Chain, BaseModel):
             outputs = chain(known_values, return_only_outputs=True)
             if self.verbose:
                 print(f"\033[1mChain {i}\033[0m:\n{outputs}\n")
-            known_values.update(outputs)
+            known_values |= outputs
         return {k: known_values[k] for k in self.output_variables}
 
 

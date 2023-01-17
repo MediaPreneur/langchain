@@ -64,38 +64,36 @@ class RefineDocumentsChain(BaseCombineDocumentsChain, BaseModel):
     @root_validator(pre=True)
     def get_default_document_variable_name(cls, values: Dict) -> Dict:
         """Get default document variable name, if not provided."""
-        if "document_variable_name" not in values:
-            llm_chain_variables = values["initial_llm_chain"].prompt.input_variables
-            if len(llm_chain_variables) == 1:
-                values["document_variable_name"] = llm_chain_variables[0]
-            else:
-                raise ValueError(
-                    "document_variable_name must be provided if there are "
-                    "multiple llm_chain input_variables"
-                )
-        else:
-            llm_chain_variables = values["initial_llm_chain"].prompt.input_variables
+        llm_chain_variables = values["initial_llm_chain"].prompt.input_variables
+        if "document_variable_name" in values:
             if values["document_variable_name"] not in llm_chain_variables:
                 raise ValueError(
                     f"document_variable_name {values['document_variable_name']} was "
                     f"not found in llm_chain input_variables: {llm_chain_variables}"
                 )
+        elif len(llm_chain_variables) == 1:
+            values["document_variable_name"] = llm_chain_variables[0]
+        else:
+            raise ValueError(
+                "document_variable_name must be provided if there are "
+                "multiple llm_chain input_variables"
+            )
         return values
 
     def combine_docs(self, docs: List[Document], **kwargs: Any) -> Tuple[str, dict]:
         """Combine by mapping first chain over all, then stuffing into final chain."""
         base_info = {"page_content": docs[0].page_content}
-        base_info.update(docs[0].metadata)
+        base_info |= docs[0].metadata
         document_info = {k: base_info[k] for k in self.document_prompt.input_variables}
         base_inputs: dict = {
             self.document_variable_name: self.document_prompt.format(**document_info)
         }
-        inputs = {**base_inputs, **kwargs}
+        inputs = base_inputs | kwargs
         res = self.initial_llm_chain.predict(**inputs)
         refine_steps = [res]
         for doc in docs[1:]:
             base_info = {"page_content": doc.page_content}
-            base_info.update(doc.metadata)
+            base_info |= doc.metadata
             document_info = {
                 k: base_info[k] for k in self.document_prompt.input_variables
             }
@@ -105,7 +103,7 @@ class RefineDocumentsChain(BaseCombineDocumentsChain, BaseModel):
                 ),
                 self.initial_response_name: res,
             }
-            inputs = {**base_inputs, **kwargs}
+            inputs = base_inputs | kwargs
             res = self.refine_llm_chain.predict(**inputs)
             refine_steps.append(res)
         if self.return_intermediate_steps:

@@ -54,9 +54,7 @@ class LLMChain(Chain, BaseModel):
 
     def generate(self, input_list: List[Dict[str, Any]]) -> LLMResult:
         """Generate LLM result from inputs."""
-        stop = None
-        if "stop" in input_list[0]:
-            stop = input_list[0]["stop"]
+        stop = input_list[0]["stop"] if "stop" in input_list[0] else None
         prompts = []
         for inputs in input_list:
             selected_inputs = {k: inputs[k] for k in self.prompt.input_variables}
@@ -70,18 +68,15 @@ class LLMChain(Chain, BaseModel):
                     "If `stop` is present in any inputs, should be present in all."
                 )
             prompts.append(prompt)
-        response = self.llm.generate(prompts, stop=stop)
-        return response
+        return self.llm.generate(prompts, stop=stop)
 
     def apply(self, input_list: List[Dict[str, Any]]) -> List[Dict[str, str]]:
         """Utilize the LLM generate method for speed gains."""
         response = self.generate(input_list)
-        outputs = []
-        for generation in response.generations:
-            # Get the text of the top generated string.
-            response_str = generation[0].text
-            outputs.append({self.output_key: response_str})
-        return outputs
+        return [
+            {self.output_key: generation[0].text}
+            for generation in response.generations
+        ]
 
     def _call(self, inputs: Dict[str, Any]) -> Dict[str, str]:
         return self.apply([inputs])[0]
@@ -115,11 +110,10 @@ class LLMChain(Chain, BaseModel):
     ) -> Sequence[Union[str, List[str], Dict[str, str]]]:
         """Call apply and then parse the results."""
         result = self.apply(input_list)
-        if self.prompt.output_parser is not None:
-            new_result = []
-            for res in result:
-                text = res[self.output_key]
-                new_result.append(self.prompt.output_parser.parse(text))
-            return new_result
-        else:
+        if self.prompt.output_parser is None:
             return result
+        new_result = []
+        for res in result:
+            text = res[self.output_key]
+            new_result.append(self.prompt.output_parser.parse(text))
+        return new_result

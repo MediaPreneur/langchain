@@ -45,10 +45,13 @@ def _get_agent(**kwargs: Any) -> AgentExecutor:
         Tool("Search", lambda x: x, "Useful for searching"),
         Tool("Lookup", lambda x: x, "Useful for looking up things in a table"),
     ]
-    agent = initialize_agent(
-        tools, fake_llm, agent="zero-shot-react-description", verbose=True, **kwargs
+    return initialize_agent(
+        tools,
+        fake_llm,
+        agent="zero-shot-react-description",
+        verbose=True,
+        **kwargs
     )
-    return agent
 
 
 def test_agent_bad_action() -> None:

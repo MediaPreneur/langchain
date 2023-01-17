@@ -40,17 +40,16 @@ class TextSplitter(ABC):
         _metadatas = metadatas or [{}] * len(texts)
         documents = []
         for i, text in enumerate(texts):
-            for chunk in self.split_text(text):
-                documents.append(Document(page_content=chunk, metadata=_metadatas[i]))
+            documents.extend(
+                Document(page_content=chunk, metadata=_metadatas[i])
+                for chunk in self.split_text(text)
+            )
         return documents
 
     def _join_docs(self, docs: List[str], separator: str) -> Optional[str]:
         text = separator.join(docs)
         text = text.strip()
-        if text == "":
-            return None
-        else:
-            return text
+        return text or None
 
     def _merge_splits(self, splits: Iterable[str], separator: str) -> List[str]:
         # We now want to combine these smaller pieces into medium size
@@ -139,10 +138,7 @@ class CharacterTextSplitter(TextSplitter):
     def split_text(self, text: str) -> List[str]:
         """Split incoming text and return chunks."""
         # First we naively split the large input into a bunch of smaller ones.
-        if self._separator:
-            splits = text.split(self._separator)
-        else:
-            splits = list(text)
+        splits = text.split(self._separator) if self._separator else list(text)
         return self._merge_splits(splits, self._separator)
 
 
@@ -171,10 +167,7 @@ class RecursiveCharacterTextSplitter(TextSplitter):
                 separator = _s
                 break
         # Now that we have the separator, split the text
-        if separator:
-            splits = text.split(separator)
-        else:
-            splits = list(text)
+        splits = text.split(separator) if separator else list(text)
         # Now go merging things, recursively splitting longer texts.
         _good_splits = []
         for s in splits:

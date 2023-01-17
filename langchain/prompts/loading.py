@@ -37,8 +37,7 @@ def _load_template(var_name: str, config: dict) -> dict:
         template_path = Path(config.pop(f"{var_name}_path"))
         # Load the template.
         if template_path.suffix == ".txt":
-            with open(template_path) as f:
-                template = f.read()
+            template = Path(template_path).read_text()
         else:
             raise ValueError
         # Set the template variable to the extracted variable.
@@ -89,10 +88,7 @@ def _load_prompt(config: dict) -> PromptTemplate:
 def load_prompt(file: Union[str, Path]) -> BasePromptTemplate:
     """Load prompt from file."""
     # Convert file to Path object.
-    if isinstance(file, str):
-        file_path = Path(file)
-    else:
-        file_path = file
+    file_path = Path(file) if isinstance(file, str) else file
     # Load from either json or yaml.
     if file_path.suffix == ".json":
         with open(file_path) as f:
@@ -131,7 +127,7 @@ def load_from_hub(path: str) -> BasePromptTemplate:
     if r.status_code != 200:
         raise ValueError(f"Could not find file at {full_url}")
     with tempfile.TemporaryDirectory() as tmpdirname:
-        file = tmpdirname + "/prompt." + suffix
+        file = f"{tmpdirname}/prompt.{suffix}"
         with open(file, "wb") as f:
             f.write(r.content)
         return load_prompt(file)
