@@ -62,7 +62,7 @@ class Agent(BaseModel):
             thoughts += action.log
             thoughts += f"\n{self.observation_prefix}{observation}\n{self.llm_prefix}"
         new_inputs = {"agent_scratchpad": thoughts, "stop": self._stop}
-        full_inputs = {**kwargs, **new_inputs}
+        full_inputs = kwargs | new_inputs
         full_output = self.llm_chain.predict(**full_inputs)
         parsed_output = self._extract_tool_and_input(full_output)
         while parsed_output is None:
@@ -171,7 +171,7 @@ class Agent(BaseModel):
                 "\n\nI now need to return a final answer based on the previous steps:"
             )
             new_inputs = {"agent_scratchpad": thoughts, "stop": self._stop}
-            full_inputs = {**kwargs, **new_inputs}
+            full_inputs = kwargs | new_inputs
             full_output = self.llm_chain.predict(**full_inputs)
             # We try to extract a final answer
             parsed_output = self._extract_tool_and_input(full_output)
@@ -179,13 +179,11 @@ class Agent(BaseModel):
                 # If we cannot extract, we just return the full output
                 return AgentFinish({"output": full_output}, full_output)
             tool, tool_input = parsed_output
-            if tool == self.finish_tool_name:
-                # If we can extract, we send the correct stuff
-                return AgentFinish({"output": tool_input}, full_output)
-            else:
-                # If we can extract, but the tool is not the final tool,
-                # we just return the full output
-                return AgentFinish({"output": full_output}, full_output)
+            return (
+                AgentFinish({"output": tool_input}, full_output)
+                if tool == self.finish_tool_name
+                else AgentFinish({"output": full_output}, full_output)
+            )
         else:
             raise ValueError(
                 "early_stopping_method should be one of `force` or `generate`, "
@@ -274,7 +272,9 @@ class AgentExecutor(Chain, BaseModel):
                 tool = name_to_tool_map[output.tool]
                 if self.verbose:
                     self.callback_manager.on_tool_start(
-                        {"name": str(tool.func)[:60] + "..."}, output, color="green"
+                        {"name": f"{str(tool.func)[:60]}..."},
+                        output,
+                        color="green",
                     )
                 try:
                     # We then call the tool on the tool input to get an observation

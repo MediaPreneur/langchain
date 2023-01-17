@@ -47,10 +47,7 @@ class BaseLLM(BaseModel, ABC):
 
         This allows users to pass in None as verbose to access the global setting.
         """
-        if verbose is None:
-            return _get_verbosity()
-        else:
-            return verbose
+        return _get_verbosity() if verbose is None else verbose
 
     @abstractmethod
     def _generate(
@@ -84,7 +81,7 @@ class BaseLLM(BaseModel, ABC):
             return output
         params = self._llm_dict()
         params["stop"] = stop
-        llm_string = str(sorted([(k, v) for k, v in params.items()]))
+        llm_string = str(sorted(list(params.items())))
         missing_prompts = []
         missing_prompt_idxs = []
         existing_prompts = {}
@@ -172,11 +169,7 @@ class BaseLLM(BaseModel, ABC):
             llm.save(file_path="path/llm.yaml")
         """
         # Convert file to Path object.
-        if isinstance(file_path, str):
-            save_path = Path(file_path)
-        else:
-            save_path = file_path
-
+        save_path = Path(file_path) if isinstance(file_path, str) else file_path
         directory_path = save_path.parent
         directory_path.mkdir(parents=True, exist_ok=True)
 

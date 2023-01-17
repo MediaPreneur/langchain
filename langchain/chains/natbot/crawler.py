@@ -33,7 +33,7 @@ class Crawler:
         self.page.set_viewport_size({"width": 1280, "height": 1080})
 
     def go_to_page(self, url):
-        self.page.goto(url=url if "://" in url else "http://" + url)
+        self.page.goto(url=url if "://" in url else f"http://{url}")
         self.client = self.page.context.new_cdp_session(self.page)
         self.page_element_buffer = {}
 
@@ -57,8 +57,7 @@ class Crawler:
 		"""
         self.page.evaluate(js)
 
-        element = self.page_element_buffer.get(int(id))
-        if element:
+        if element := self.page_element_buffer.get(int(id)):
             x = element.get("center_x")
             y = element.get("center_y")
 
@@ -156,12 +155,11 @@ class Crawler:
                 return "input"
             if node_name == "img":
                 return "img"
-            if (
-                node_name == "button" or has_click_handler
-            ):  # found pages that needed this quirk
-                return "button"
-            else:
-                return "text"
+            return (
+                "button"
+                if (node_name == "button" or has_click_handler)
+                else "text"
+            )
 
         def find_attributes(attributes, keys):
             values = {}
@@ -183,7 +181,7 @@ class Crawler:
 
         def add_to_hash_tree(hash_tree, tag, node_id, node_name, parent_id):
             parent_id_str = str(parent_id)
-            if not parent_id_str in hash_tree:
+            if parent_id_str not in hash_tree:
                 parent_name = strings[node_names[parent_id]].lower()
                 grand_parent_id = parent[parent_id]
 
@@ -262,21 +260,19 @@ class Crawler:
 
             ancestor_exception = is_ancestor_of_anchor or is_ancestor_of_button
             ancestor_node_key = (
-                None
-                if not ancestor_exception
-                else str(anchor_id)
-                if is_ancestor_of_anchor
-                else str(button_id)
+                (str(anchor_id) if is_ancestor_of_anchor else str(button_id))
+                if ancestor_exception
+                else None
             )
             ancestor_node = (
-                None
-                if not ancestor_exception
-                else child_nodes.setdefault(str(ancestor_node_key), [])
+                child_nodes.setdefault(str(ancestor_node_key), [])
+                if ancestor_exception
+                else None
             )
 
             if node_name == "#text" and ancestor_exception:
                 text = strings[node_value[index]]
-                if text == "|" or text == "•":
+                if text in ["|", "•"]:
                     continue
                 ancestor_node.append({"type": "type", "value": text})
             else:
@@ -319,7 +315,7 @@ class Crawler:
                     element_node_value = strings[text_index]
 
             # remove redudant elements
-            if ancestor_exception and (node_name != "a" and node_name != "button"):
+            if ancestor_exception and node_name not in ["a", "button"]:
                 continue
 
             elements_in_view_port.append(

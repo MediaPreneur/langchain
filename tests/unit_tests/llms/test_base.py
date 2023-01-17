@@ -11,7 +11,7 @@ def test_caching() -> None:
     llm = FakeLLM()
     params = llm._llm_dict()
     params["stop"] = None
-    llm_string = str(sorted([(k, v) for k, v in params.items()]))
+    llm_string = str(sorted(list(params.items())))
     langchain.llm_cache.update("foo", llm_string, [Generation(text="fizz")])
     output = llm.generate(["foo", "bar", "foo"])
     expected_cache_output = [Generation(text="foo")]

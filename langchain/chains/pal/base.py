@@ -54,7 +54,7 @@ class PALChain(Chain, BaseModel):
         if self.verbose:
             self.callback_manager.on_text(code, color="green", end="\n")
         repl = PythonREPL()
-        res = repl.run(code + f"\n{self.get_answer_expr}")
+        res = repl.run(f"{code}\n{self.get_answer_expr}")
         return {self.output_key: res.strip()}
 
     @classmethod

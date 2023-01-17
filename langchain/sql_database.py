@@ -27,15 +27,17 @@ class SQLDatabase:
         self._all_tables = self._inspector.get_table_names(schema=schema)
         self._include_tables = include_tables or []
         if self._include_tables:
-            missing_tables = set(self._include_tables).difference(self._all_tables)
-            if missing_tables:
+            if missing_tables := set(self._include_tables).difference(
+                self._all_tables
+            ):
                 raise ValueError(
                     f"include_tables {missing_tables} not found in database"
                 )
         self._ignore_tables = ignore_tables or []
         if self._ignore_tables:
-            missing_tables = set(self._ignore_tables).difference(self._all_tables)
-            if missing_tables:
+            if missing_tables := set(self._ignore_tables).difference(
+                self._all_tables
+            ):
                 raise ValueError(
                     f"ignore_tables {missing_tables} not found in database"
                 )
@@ -52,9 +54,7 @@ class SQLDatabase:
 
     def get_table_names(self) -> Iterable[str]:
         """Get names of tables available."""
-        if self._include_tables:
-            return self._include_tables
-        return set(self._all_tables) - set(self._ignore_tables)
+        return self._include_tables or set(self._all_tables) - set(self._ignore_tables)
 
     @property
     def table_info(self) -> str:
@@ -65,16 +65,18 @@ class SQLDatabase:
         """Get information about specified tables."""
         all_table_names = self.get_table_names()
         if table_names is not None:
-            missing_tables = set(table_names).difference(all_table_names)
-            if missing_tables:
+            if missing_tables := set(table_names).difference(all_table_names):
                 raise ValueError(f"table_names {missing_tables} not found in database")
             all_table_names = table_names
         template = "Table '{table_name}' has columns: {columns}."
         tables = []
         for table_name in all_table_names:
-            columns = []
-            for column in self._inspector.get_columns(table_name, schema=self._schema):
-                columns.append(f"{column['name']} ({str(column['type'])})")
+            columns = [
+                f"{column['name']} ({str(column['type'])})"
+                for column in self._inspector.get_columns(
+                    table_name, schema=self._schema
+                )
+            ]
             column_str = ", ".join(columns)
             table_str = template.format(table_name=table_name, columns=column_str)
             tables.append(table_str)
